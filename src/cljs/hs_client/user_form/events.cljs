@@ -67,8 +67,8 @@
 
 (rf/reg-event-fx
  ::http-error
- (fn [_ [_ msg]]
-   {:fx [[::effects/console-log msg]
+ (fn [_ [_ resp]]
+   {:fx [[::effects/console-log resp]
          [::effects/alert "При обращении к серверу произошла ошибка.\nОбновите страницу."]
          [:dispatch [::panel-loading :add-user false]]]}))
 
@@ -99,18 +99,36 @@
 (rf/reg-event-fx
  ::delete-user-request
  [(rf/inject-cofx ::cofx/api-url)]
- (fn [{:keys [api-url]} [_ id]]
-   {:fx [[:http-xhrio {:method :delete
-                       :uri (str api-url "api/v1/users/" id)
+ (fn [{:keys [db api-url]} [_ user-id]]
+   {:db (update-in db [:panels :all-users :users] #(->> %
+                                                        (map (fn [user]
+                                                               (conj user
+                                                                     (when (= (:id user) user-id)
+                                                                       {:deleting true}))))
+                                                        (vec)))
+    :fx [[:http-xhrio {:method :delete
+                       :uri (str api-url "api/v1/users/" user-id)
                        :body ""
                        :response-format help/kebabed-json-response-format
                        :on-success [::delete-user-success]
-                       :on-failure [::http-error]}]]}))
+                       :on-failure [::delete-user-error user-id]}]]}))
+
+(rf/reg-event-fx
+ ::delete-user-error
+ (fn [{:keys [db]} [_ user-id resp]]
+   {:db (update-in db [:panels :all-users :users] #(->> %
+                                                        (map (fn [user] (if (= (:id user) user-id)
+                                                                          (dissoc user :deleting)
+                                                                          user)))
+                                                        (vec)))
+    :fx [[:dispatch [::http-error resp]]]}))
 
 (rf/reg-event-fx
  ::delete-user-success
- (fn [{:keys [db]} [_ user]]
-   {:db (update-in db [:panels :all-users :users] #(vec (remove (fn [el] (= el user)) %)))
+ (fn [{:keys [db]} [_ {user-id :id}]]
+   {:db (update-in db [:panels :all-users :users] #(->> %
+                                                        (remove (fn [user] (= (:id user) user-id)))
+                                                        (vec)))
     :fx [[::effects/console-log "Пользователь успешно удалён"]]}))
 
 (rf/reg-event-fx

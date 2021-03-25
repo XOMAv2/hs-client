@@ -146,9 +146,12 @@
                                      :type "button"}
         [:i.bi.bi-pencil]]
        [:button.btn.btn-link.btn-sm {:aria-label "Удалить пользователя"
+                                     :disabled (when (:deleting user) "disabled")
                                      :on-click #(dispatch [::events/delete-user-request (:id user)])
                                      :type "button"}
-        [:i.bi.bi-x-circle]]]]
+        (if (:deleting user)
+          [:span.spinner-border.spinner-border-sm]
+          [:i.bi.bi-x-circle])]]]
      [:p.mb-1 [:span.fw-lighter "Пол: "] (sex-map (:sex user))]
      [:p.mb-1 [:span.fw-lighter "Дата рождения: "] (apply str (take 10 (:birthday user)))]
      [:p.mb-1 [:span.fw-lighter "Адрес проживания: "] (:address user)]
