@@ -2,7 +2,6 @@
   (:require [re-frame.core :refer [subscribe dispatch]]
             [hs-client.user-form.subs :as subs]
             [hs-client.user-form.events :as events]
-            [hs-client.router :as routing]
             [reitit.frontend.easy :refer [href]]
             [hs-common.helpers :as help]
             [reagent.core :as r]))
@@ -191,7 +190,7 @@
                  :err-path [:panels :edit-user :user-form-errors]}]]))
 
 (defn redirection-panel []
-  (dispatch [::events/change-route ::routing/all])
+  (dispatch [::events/change-route :all-route])
   [:div.py-3 {:style {:width "36rem"}}
    [:ul.list-group
     [:li.list-group-item.list-group-item-action
@@ -211,19 +210,22 @@
                                    :aria-current "page"})))]
     [:div.d-flex.align-items-start
      [:nav.nav.flex-column.nav-pills.m-3
-      [:a.nav-link.text-nowrap.text-center.link-dark (with-nav-attrs {}
-                                                       [::routing/all])
+      [:a.nav-link.text-nowrap.text-center.link-dark (with-nav-attrs
+                                                       {}
+                                                       [:all-route])
        "Все пользователи"]
-      [:a.nav-link.text-nowrap.text-center.link-dark (with-nav-attrs {}
-                                                       [::routing/add])
+      [:a.nav-link.text-nowrap.text-center.link-dark (with-nav-attrs
+                                                       {}
+                                                       [:add-route])
        "Создание" [:br] "нового пользователя"]
-      [:a.nav-link.text-nowrap.text-center.link-dark (with-nav-attrs {}
-                                                       [::routing/edit {:id edit-user-id}])
+      [:a.nav-link.text-nowrap.text-center.link-dark (with-nav-attrs
+                                                       {}
+                                                       [:edit-route {:id edit-user-id}])
        "Редактирование" [:br] "пользователя"]]
      [:div.tab.content
       [:div.tab-pane {:role "tabpanel"}
        (cond
-         (= curr-route-name ::routing/all) [all-users-panel]
-         (= curr-route-name ::routing/add) [add-user-panel]
-         (= curr-route-name ::routing/edit) [edit-user-panel]
+         (= curr-route-name :all-route) [all-users-panel]
+         (= curr-route-name :add-route) [add-user-panel]
+         (= curr-route-name :edit-route) [edit-user-panel]
          :else [redirection-panel])]]]))

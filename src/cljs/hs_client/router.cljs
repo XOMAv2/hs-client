@@ -3,18 +3,16 @@
             [reitit.coercion.spec]
             [reitit.coercion]))
 
-; Хочу пользоваться событиями, вместо того чтобы помещать логику в контроллеры.
-
 (def routes
-  [["/users/" {:name ::all
-               :controllers [{:start (constantly (.log js/console "Entering all"))}]}]
-   ["/users/add" {:name ::add
-                  :controllers [{:start (constantly (.log js/console "Entering add"))}]}]
-   ["/users/:id/edit" {:name ::edit
+  [["/users/" {:name :all-route
+               :controllers [{:start (fn [& _] (.log js/console "Entering all-route"))}]}]
+   ["/users/add" {:name :add-route
+                  :controllers [{:start (fn [& _] (.log js/console "Entering add-route"))}]}]
+   ["/users/:id/edit" {:name :edit-route
                        :parameters {:path {:id int?}}
                        :controllers [{:parameters {:path [:id]}
                                       :start (fn [identity]
-                                               (.log js/console "Entering edit")
+                                               (.log js/console "Entering edit-route")
                                                (.log js/console (-> identity :path :id)))}]}]])
 
 (def router

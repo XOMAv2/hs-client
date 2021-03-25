@@ -6,7 +6,6 @@
             [hs-common.helpers :as help]
             [day8.re-frame.http-fx]
             [ajax.core :as ajax]
-            [hs-client.router :as routing]
             [reitit.frontend.controllers]
             [hs-client.user-form.effects :as effects]
             [cljs.spec.alpha :as s]))
@@ -121,6 +120,6 @@
                                                :user-form-errors nil
                                                :show-errors false
                                                :loading false})
-         fx [[:dispatch [::change-route ::routing/edit {:id user-id}]]]]
+         fx [[:dispatch [::change-route :edit-route {:id user-id}]]]]
      {:db db
       :fx fx})))
