@@ -74,8 +74,9 @@
 (rf/reg-event-fx
  ::load-users
  [(rf/inject-cofx ::cofx/api-url)]
- (fn [{:keys [db api-url]} _]
-   {:fx [[:http-xhrio {:method :get
+ (fn [{:keys [api-url]} _]
+   {:fx [[:dispatch [::panel-loading :all-users true]]
+         [:http-xhrio {:method :get
                        :uri (str api-url "api/v1/users")
                        :response-format help/kebabed-json-response-format
                        :on-success [::users-loading-success]
@@ -85,7 +86,7 @@
  ::users-loading-success
  (fn [{:keys [db]} [_ users]]
    {:db (assoc-in db [:panels :all-users :users] users)
-    :dispatch [::panel-loading :all-users false]}))
+    :fx [[:dispatch [::panel-loading :all-users false]]]}))
 
 (rf/reg-event-fx
  ::add-user-success
