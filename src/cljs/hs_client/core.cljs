@@ -6,6 +6,8 @@
             [reitit.frontend]
             [reitit.frontend.easy]
             [reitit.coercion.spec]
+            [reitit.coercion]
+            [hs-client.router :refer [router]]
             [hs-client.config :as config]))
 
 ;; TODO: навигация
@@ -16,20 +18,6 @@
 ;; DEBUG: исправить формат даты в респонсе сервера
 ;; DEBUG: валидация select'ов
 ;; DEBUG: при удалении редактируемого пользователя необходимо завершать валидацию
-
-(def routes
-  [["/users"
-    ["/" {:name ::users
-          :controllers [{:start (fn [& params] (.log js/console "Entering edit"))
-                         :stop  (fn [& params] (.log js/console "Leaving edit"))}]}]
-    ["/add" {:name ::add
-             :controllers [{:start (fn [& params] (.log js/console "Entering edit"))
-                            :stop  (fn [& params] (.log js/console "Leaving edit"))}]}]
-    ["/:id/edit" {:name ::edit
-                  :parameters {:path {:id int?}}
-                  :controllers [{:start (fn [& params] (.log js/console "Entering edit"))
-                                 :stop  (fn [& params] (.log js/console "Leaving edit"))}]}]]
-   ["/*" {:name ::not-found}]])
 
 (defn dev-setup []
   (when config/debug?
@@ -44,9 +32,13 @@
 (defn -main []
   (rf/dispatch-sync [::events/initialize-db])
   (dev-setup)
-  (reitit.frontend.easy/start!
-   (reitit.frontend/router routes {:data {:coercion reitit.coercion.spec/coercion}
-                                   :conflicts nil})
-   (fn [match] (.log js/console match))
-   {:use-fragment false})
+  (reitit.frontend.easy/start! router
+                               (fn [match]
+                                 (when match
+                                   (let [parameters (reitit.coercion/coerce! match)
+                                         ; Приведение параметров почему-то осуществляется даже без
+                                         ; вызова функции coerce!
+                                         match (assoc match :parameters parameters)]
+                                     (rf/dispatch [::events/on-navigate match]))))
+                               {:use-fragment false})
   (mount-root))

@@ -2,6 +2,8 @@
   (:require [re-frame.core :refer [subscribe dispatch]]
             [hs-client.user-form.subs :as subs]
             [hs-client.user-form.events :as events]
+            [hs-client.router :as routing]
+            [reitit.frontend.easy :refer [href]]
             [hs-common.helpers :as help]
             [reagent.core :as r]))
 
@@ -127,7 +129,7 @@
   (let [sex-map {\m "мужской"
                  \f "женский"
                  \x "другой"}]
-    [:li.list-group-item.list-group-item-action {:href ""}
+    [:li.list-group-item.list-group-item-action
      [:div.d-flex.justify-content-between
       [:h5.mb-1 (:fullname user)]
       [:div
@@ -156,7 +158,7 @@
 
 (defn all-users-panel []
   (let [users @(subscribe [::subs/users])]
-    [:div.vh-100.py-3 {:style {:width "36rem"}}
+    [:div.py-3.vh-100 {:style {:width "36rem"}}
      [:div.h-100.overflow-auto
       [user-list users]]]))
 
@@ -179,38 +181,40 @@
                  :form-path [:panels :edit-user :user-form]
                  :err-path [:panels :edit-user :user-form-errors]}]]))
 
+(defn redirection-panel []
+  (dispatch [::events/change-route ::routing/all])
+  [:div.py-3 {:style {:width "36rem"}}
+   [:ul.list-group
+    [:li.list-group-item.list-group-item-action
+     [:p.my-2
+      [:span.spinner-border.spinner-border-sm.me-2]
+      "Перенаправление на список всех пользователей..."]]]])
+
 (defn navigation-panel []
-  (let [current-panel @(subscribe [::subs/current-panel])]
+  (let [match @(subscribe [::subs/route-match])
+        edit-user-id @(subscribe [::subs/edit-user-id])
+        curr-route-name (-> match :data :name)
+        with-nav-attrs (fn [attrs [route-name route-params]]
+                         (merge attrs
+                                {:href (href route-name route-params)}
+                                (when (= curr-route-name route-name)
+                                  {:class "active"
+                                   :aria-current "page"})))]
     [:div.d-flex.align-items-start
-     [:div.nav.flex-column.nav-pills.m-3 {:aria-orientation "vertical"
-                                          :role "tablist"}
-      [:button#all-users-pill.nav-link {:aria-controls "all-users"
-                                        :role "tab"
-                                        :type "button"
-                                        :href "#home"
-                                        :on-click #(dispatch [::events/load-users])
-                                        :data-bs-target "#all-users"
-                                        :data-bs-toggle "pill"}
+     [:nav.nav.flex-column.nav-pills.m-3
+      [:a.nav-link.text-nowrap.text-center.link-dark (with-nav-attrs {}
+                                                       [::routing/all])
        "Все пользователи"]
-      [:button#add-user-pill.nav-link {:aria-controls "add-user"
-                                       :role "tab"
-                                       :type "button"
-                                       :data-bs-target "#add-user"
-                                       :data-bs-toggle "pill"}
+      [:a.nav-link.text-nowrap.text-center.link-dark (with-nav-attrs {}
+                                                       [::routing/add])
        "Создание" [:br] "нового пользователя"]
-      [:button#edit-user-pill.nav-link {:aria-controls "edit-user"
-                                        :role "tab"
-                                        :type "button"
-                                        :data-bs-target "#edit-user"
-                                        :data-bs-toggle "pill"}
+      [:a.nav-link.text-nowrap.text-center.link-dark (with-nav-attrs {}
+                                                       [::routing/edit {:id edit-user-id}])
        "Редактирование" [:br] "пользователя"]]
-     [:div.tab-content
-      [:div#all-users.tab-pane.fade {:aria-labelledby "all-users-pill"
-                                     :role "tabpanel"}
-       [all-users-panel]]
-      [:div#add-user.tab-pane.fade {:aria-labelledby "add-user-pill"
-                                    :role "tabpanel"}
-       [add-user-panel]]
-      [:div#edit-user.tab-pane.fade {:aria-labelledby "edit-user-pill"
-                                     :role "tabpanel"}
-       [edit-user-panel]]]]))
+     [:div.tab.content
+      [:div.tab-pane {:role "tabpanel"}
+       (cond
+         (= curr-route-name ::routing/all) [all-users-panel]
+         (= curr-route-name ::routing/add) [add-user-panel]
+         (= curr-route-name ::routing/edit) [edit-user-panel]
+         :else [redirection-panel])]]]))

@@ -34,9 +34,9 @@
    (-> db :panels :all-users :users)))
 
 (rf/reg-sub
- ::current-panel
+ ::route-match
  (fn [db _]
-   (:current-panel db)))
+   (:route-match db)))
 
 (rf/reg-sub
  ::edit-form

@@ -6,6 +6,8 @@
             [hs-common.helpers :as help]
             [day8.re-frame.http-fx]
             [ajax.core :as ajax]
+            [hs-client.router :as routing]
+            [reitit.frontend.controllers]
             [hs-client.user-form.effects :as effects]
             [cljs.spec.alpha :as s]))
 
@@ -14,10 +16,21 @@
  (fn [_ _]
    db/default-db))
 
+; Для смены URI нужно отправлять это событие. Его аргуент - квалифицированное имя route'а.
+(rf/reg-event-fx
+ ::change-route
+ (fn [_ [_ route-name path-params]]
+   {::effects/change-route [route-name path-params]}))
+
+; Это событие не нужно вызывать напрямую из views. Оно вызываться при смене URI.
 (rf/reg-event-db
- ::change-panel
- (fn [db [_ val]]
-   (assoc db :current-panel val)))
+ ::on-navigate
+ (fn [db [_ new-match]]
+   (let [old-match (:route-match db)
+         controllers (reitit.frontend.controllers/apply-controllers
+                      (:controllers old-match) new-match)
+         new-match (assoc new-match :controllers controllers)]
+     (assoc db :route-match new-match))))
 
 (rf/reg-event-db
  ::update-user-form
@@ -99,11 +112,15 @@
    {:db (update-in db [:panels :all-users :users] #(vec (remove (fn [el] (= el user)) %)))
     :fx [[::effects/console-log "Пользователь успешно удалён"]]}))
 
-(rf/reg-event-db
+(rf/reg-event-fx
  ::start-editing
- (fn [db [_ user]]
-   (assoc-in db [:panels :edit-user] {:user-id (:id user)
-                                      :user-form (dissoc user :id)
-                                      :user-form-errors nil
-                                      :show-errors false
-                                      :loading false})))
+ (fn [{:keys [db]} [_ user]]
+   (let [user-id (:id user)
+         db (assoc-in db [:panels :edit-user] {:user-id user-id
+                                               :user-form (dissoc user :id)
+                                               :user-form-errors nil
+                                               :show-errors false
+                                               :loading false})
+         fx [[:dispatch [::change-route ::routing/edit {:id user-id}]]]]
+     {:db db
+      :fx fx})))

@@ -1,5 +1,6 @@
 (ns hs-client.user-form.effects
-  (:require [re-frame.core :as rf]))
+  (:require [reitit.frontend.easy]
+            [re-frame.core :as rf]))
 
 (rf/reg-fx
  ::alert
@@ -10,3 +11,8 @@
  ::console-log
  (fn [msg]
    (.log js/console msg)))
+
+(rf/reg-fx
+ ::change-route
+ (fn [[route-name path-params]]
+   (reitit.frontend.easy/push-state route-name path-params)))

@@ -31,7 +31,7 @@
                              ::edit-user-panel]))
 
 (def default-db
-  {:current-panel :all-users-panel
+  {:route-match nil
    :panels {:all-users {:users []
                         :loading false}
             :add-user {:user-form {:fullname ""
