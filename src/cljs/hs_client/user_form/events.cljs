@@ -68,7 +68,8 @@
 (rf/reg-event-fx
  ::http-error
  (fn [_ [_ msg]]
-   {:fx [[::effects/alert msg]
+   {:fx [[::effects/console-log msg]
+         [::effects/alert "При обращении к серверу произошла ошибка.\nОбновите страницу."]
          [:dispatch [::panel-loading :add-user false]]]}))
 
 (rf/reg-event-fx
