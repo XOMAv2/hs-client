@@ -70,21 +70,28 @@
         [:div.form-check
          [:input#sex-male.form-check-input {:value "m"
                                             :default-checked (= (:sex user) "m")
+                                            :class (when (:sex errors) "is-invalid")
+                                            :aria-describedby (when (:sex errors) "radio-error")
                                             :name "sex-radio"
                                             :type "radio"}]
          [:label.form-check-label {:for "sex-male"} "Мужской"]]
         [:div.form-check
          [:input#sex-female.form-check-input {:value "f"
                                               :default-checked (= (:sex user) "f")
+                                              :class (when (:sex errors) "is-invalid")
+                                              :aria-describedby (when (:sex errors) "radio-error")
                                               :name "sex-radio"
                                               :type "radio"}]
          [:label.form-check-label {:for "sex-female"} "Женский"]]
         [:div.form-check
          [:input#sex-other.form-check-input {:value "x"
                                              :default-checked (= (:sex user) "x")
+                                             :class (when (:sex errors) "is-invalid")
+                                             :aria-describedby (when (:sex errors) "radio-error")
                                              :name "sex-radio"
                                              :type "radio"}]
-         [:label.form-check-label {:for "sex-other"} "Другой"]]]
+         [:label.form-check-label {:for "sex-other"} "Другой"]
+         [:div#radio-error.invalid-feedback (:sex errors)]]]
      ; Дата рождения
        [:div.mb-3
         [:label.form-label {:for "birthday-input"} "Дата рождения"]
