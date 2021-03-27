@@ -45,15 +45,9 @@
                                           :policy-number "Проверьте правильность заполнения поля."}
                        :show-errors false
                        :loading false}
-            :edit-user {:user-id 3
-                        :user-form {:fullname ""
-                                    :sex "x"
-                                    :birthday ""
-                                    :address ""
-                                    :policy-number ""}
-                        :user-form-errors {:fullname "Проверьте правильность заполнения поля."
-                                           :birthday "Проверьте правильность заполнения поля."
-                                           :address "Проверьте правильность заполнения поля."
-                                           :policy-number "Проверьте правильность заполнения поля."}
+            :edit-user {:user-id nil
+                        :user-form nil
+                        :user-form-errors nil
                         :show-errors false
-                        :loading false}}})
+                        :loading false
+                        :fetching false}}})

@@ -133,7 +133,17 @@
                                                                        "none")}}]
       "Добавить"]]))
 
-(defn user-item [user]
+(defn edit-button []
+  (let [loading? @(subscribe [::subs/edit-panel-loading])]
+    [:div.d-flex.justify-content-end
+     [:button.btn.btn-outline-primary {:type "submit"
+                                       :disabled loading?
+                                       :on-click #(dispatch [::events/edit-form-submit])}
+      [:span.spinner-border.spinner-border-sm.me-2 {:style {:display (when (not loading?)
+                                                                       "none")}}]
+      "Изменить"]]))
+
+(defn user-item [user edit-disabled?]
   (let [sex-map {\m "мужской"
                  \f "женский"
                  \x "другой"}]
@@ -142,11 +152,12 @@
       [:h5.mb-1 (:fullname user)]
       [:div
        [:button.btn.btn-link.btn-sm {:aria-label "Редактировать данные пользователя"
+                                     :disabled edit-disabled?
                                      :on-click #(dispatch [::events/start-editing user])
                                      :type "button"}
         [:i.bi.bi-pencil]]
        [:button.btn.btn-link.btn-sm {:aria-label "Удалить пользователя"
-                                     :disabled (when (:deleting user) "disabled")
+                                     :disabled (:deleting user)
                                      :on-click #(dispatch [::events/delete-user-request (:id user)])
                                      :type "button"}
         (if (:deleting user)
@@ -164,11 +175,12 @@
      [:<> el-body]]]])
 
 (defn user-list []
-  (let [users @(subscribe [::subs/users])]
+  (let [users @(subscribe [::subs/users])
+        edit-fetching? @(subscribe [::subs/edit-user-fetching])]
     (if (empty? users)
       [one-el-list "Список пользователей пуст."]
       [:ul.list-group
-       (for [user users] ^{:key (gensym)} [user-item user])])))
+       (for [user users] ^{:key (gensym)} [user-item user edit-fetching?])])))
 
 (defn redirection-panel []
   (dispatch [::events/change-route :all-route])
@@ -200,13 +212,19 @@
 
 (defn edit-user-panel []
   (let [user @(subscribe [::subs/edit-form])
-        errors @(subscribe [::subs/edit-form-visible-errors])]
+        errors @(subscribe [::subs/edit-form-visible-errors])
+        fetching? @(subscribe [::subs/edit-user-fetching])]
     [:div.py-3 {:style {:width "36rem"}}
-     [user-form {:user user
-                 :errors errors
-                 :form-path [:panels :edit-user :user-form]
-                 :err-path [:panels :edit-user :user-form-errors]}]]))
-
+     (cond
+       fetching? [one-el-list
+                  ^{:key (gensym)} [:span.spinner-border.spinner-border-sm.me-2]
+                  "Загрузка редактируемого пользователя..."]
+       (seq user) [user-form {:user user
+                              :errors errors
+                              :form-path [:panels :edit-user :user-form]
+                              :err-path [:panels :edit-user :user-form-errors]}
+                   [edit-button]]
+       :else [redirection-panel])]))
 
 (defn navigation-panel []
   (let [match @(subscribe [::subs/route-match])
@@ -217,7 +235,8 @@
                                 {:href (href route-name route-params)}
                                 (when (= curr-route-name route-name)
                                   {:class "active"
-                                   :aria-current "page"})))]
+                                   :aria-current "page"})))
+          not-found? @(subscribe [::subs/edit-user-not-found])]
     [:div.d-flex.align-items-start
      [:nav.nav.flex-column.nav-pills.m-3
       [:a.nav-link.text-nowrap.text-center.link-dark (with-nav-attrs
@@ -229,7 +248,7 @@
                                                        [:add-route])
        "Создание" [:br] "нового пользователя"]
       [:a.nav-link.text-nowrap.text-center.link-dark (with-nav-attrs
-                                                       {}
+                                                       {:style {:display (when not-found? "none")}}
                                                        [:edit-route {:id edit-user-id}])
        "Редактирование" [:br] "пользователя"]]
      [:div.tab.content

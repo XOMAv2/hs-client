@@ -141,20 +141,92 @@
 (rf/reg-event-fx
  ::delete-user-success
  (fn [{:keys [db]} [_ {user-id :id}]]
-   {:db (update-in db [:panels :all-users :users] #(->> %
-                                                        (remove (fn [user] (= (:id user) user-id)))
-                                                        (vec)))
-    :fx [[::effects/console-log "Пользователь успешно удалён"]]}))
+   (let [edit-user-id (-> db :panels :edit-user :user-id)]
+     {:db (update-in db [:panels :all-users :users]
+                     #(->> %
+                           (remove (fn [user] (= (:id user) user-id)))
+                           (vec)))
+      :fx [(when (= edit-user-id user-id) [:dispatch [::reset-edit-panel nil]])
+           [::effects/console-log "Пользователь успешно удалён"]]})))
+
+(rf/reg-event-fx
+ ::load-edit-user
+ [(rf/inject-cofx ::cofx/api-url)]
+ (fn [{:keys [db api-url]} [_ user-id]]
+   (let [curr-user-id (-> db :panels :edit-user :user-id)
+         curr-user-form (-> db :panels :edit-user :user-form)]
+     (if (and (= curr-user-id user-id) (seq curr-user-form))
+       {}
+       {:db (assoc-in db [:panels :edit-user] {:user-id user-id
+                                               :user-form nil
+                                               :user-form-errors nil
+                                               :show-errors false
+                                               :loading false
+                                               :fetching true})
+        :fx [[:http-xhrio {:method :get
+                           :uri (str api-url "api/v1/users/" user-id)
+                           :response-format help/kebabed-json-response-format
+                           :on-success [::reset-edit-panel]
+                           :on-failure [::load-edit-user-error]}]]}))))
+
+(rf/reg-event-fx
+ ::load-edit-user-error
+ (fn [{:keys [db]} [_ resp]]
+   {:db (assoc-in db [:panels :edit-user :fetching] false)
+    :fx [(if (= 404 (:status resp))
+           [::effects/alert (str "Не удалось найти редактируемого пользователя.\n"
+                                 "Возможно он был удалён.")]
+           [:dispatch [::http-error resp]])]}))
 
 (rf/reg-event-fx
  ::start-editing
- (fn [{:keys [db]} [_ user]]
-   (let [user-id (:id user)
-         db (assoc-in db [:panels :edit-user] {:user-id user-id
-                                               :user-form (dissoc user :id)
-                                               :user-form-errors nil
-                                               :show-errors false
-                                               :loading false})
-         fx [[:dispatch [::change-route :edit-route {:id user-id}]]]]
-     {:db db
-      :fx fx})))
+ (fn [_ [_ user]]
+   {:fx [[:dispatch [::reset-edit-panel user]]
+         [:dispatch [::change-route :edit-route {:id (:id user)}]]]}))
+
+(rf/reg-event-db
+ ::reset-edit-panel
+ (fn [db [_ user]]
+   (let [user (update user :birthday ->yyyy-mm-dd)]
+     (assoc-in db [:panels :edit-user] {:user-id (:id user)
+                                        :user-form (dissoc user :id)
+                                        :user-form-errors nil
+                                        :show-errors false
+                                        :loading false
+                                        :fetching false}))))
+
+(rf/reg-event-fx
+ ::edit-form-submit
+ [(rf/inject-cofx ::cofx/api-url)]
+ (fn [{:keys [db api-url]} _]
+   (let [user-form (-> db :panels :edit-user :user-form)
+         user-id (-> db :panels :edit-user :user-id)
+         valid? (s/valid? ::ss/user-form user-form)
+         db (assoc-in db [:panels :edit-user :show-errors] true)
+         fx (if valid?
+              [[:dispatch [::panel-loading :edit-user true]]
+               [:http-xhrio {:method :patch
+                             :uri (str api-url "api/v1/users/" user-id)
+                             :params user-form
+                             :format (ajax/json-request-format)
+                             :response-format help/kebabed-json-response-format
+                             :on-success [::edit-user-success]
+                             :on-failure [::edit-form-submit-error]}]]
+              [[::effects/alert "Неверные данные пользователя."]])]
+     (conj {:db db} (when fx {:fx fx})))))
+
+(rf/reg-event-fx
+ ::edit-user-success
+ (fn [_ _]
+   {:fx [[:dispatch [::panel-loading :edit-user false]]
+         [::effects/alert "Пользователь успешно отредактирован."]]}))
+
+(rf/reg-event-fx
+ ::edit-form-submit-error
+ (fn [_ [_ resp]]
+   {:fx (if (= 404 (:status resp))
+          [[:dispatch [::reset-edit-panel nil]]
+           [::effects/alert (str "Не удалось найти редактируемого пользователя.\n"
+                                 "Возможно он был удалён.")]]
+          [[:dispatch [::panel-loading :edit-user false]]
+           [:dispatch [::http-error resp]]])}))

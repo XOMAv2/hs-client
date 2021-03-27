@@ -69,3 +69,20 @@
  :<- [::edit-form-errors]
  (fn [[show? errors] _]
    (when show? errors)))
+
+(rf/reg-sub
+ ::edit-panel-loading
+ (fn [db _]
+   (-> db :panels :edit-user :loading)))
+
+(rf/reg-sub
+ ::edit-user-fetching
+ (fn [db _]
+   (-> db :panels :edit-user :fetching)))
+
+(rf/reg-sub
+ ::edit-user-not-found
+ :<- [::edit-form]
+ :<- [::edit-user-fetching]
+ (fn [[form fetching?] _]
+   (and (not fetching?) (empty? form))))

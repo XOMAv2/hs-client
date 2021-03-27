@@ -19,7 +19,8 @@
                        :controllers [{:parameters {:path [:id]}
                                       :start (fn [identity]
                                                (.log js/console "Entering edit-route")
-                                               (.log js/console (-> identity :path :id)))}]}]])
+                                               (rf/dispatch [::events/load-edit-user
+                                                             (-> identity :path :id)]))}]}]])
 
 (def router
   (reitit.frontend/router routes {:data {:coercion reitit.coercion.spec/coercion}
