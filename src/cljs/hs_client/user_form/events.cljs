@@ -61,16 +61,28 @@
                              :format (ajax/json-request-format)
                              :response-format help/kebabed-json-response-format
                              :on-success [::add-user-success]
-                             :on-failure [::http-error]}]]
+                             :on-failure [::add-form-submit-error]}]]
               [[::effects/alert "Неверные данные пользователя."]])]
      (conj {:db db} (when fx {:fx fx})))))
 
 (rf/reg-event-fx
- ::http-error
+ ::add-user-success
+ (fn [_ _]
+   {:fx [[:dispatch [::panel-loading :add-user false]]
+         [::effects/alert "Пользователь успешно добавлен."]]}))
+
+(rf/reg-event-fx
+ ::add-form-submit-error
  (fn [_ [_ resp]]
-   {:fx [[::effects/console-log resp]
-         [::effects/alert "При обращении к серверу произошла ошибка.\nОбновите страницу."]
-         [:dispatch [::panel-loading :add-user false]]]}))
+   {:fx [[:dispatch [::panel-loading :add-user false]]
+         [:dispatch [::http-error resp]]]}))
+
+(rf/reg-event-fx
+ ::http-error
+ (fn [{:keys [db]} [_ resp]]
+   {:db (assoc db :server-error true)
+    :fx [[::effects/console-log resp]
+         [::effects/alert "При обращении к серверу произошла ошибка.\nОбновите страницу."]]}))
 
 (rf/reg-event-fx
  ::load-users
@@ -81,20 +93,23 @@
                        :uri (str api-url "api/v1/users")
                        :response-format help/kebabed-json-response-format
                        :on-success [::users-loading-success]
-                       :on-failure [::http-error]}]]}))
+                       :on-failure [::load-users-error]}]]}))
+
+(defn ->yyyy-mm-dd [date]
+  (apply str (take 10 date)))
 
 (rf/reg-event-fx
  ::users-loading-success
  (fn [{:keys [db]} [_ users]]
-   {:db (assoc-in db [:panels :all-users :users] users)
-    :fx [[:dispatch [::panel-loading :all-users false]]]}))
+   (let [users (map #(update % :birthday ->yyyy-mm-dd) users)]
+     {:db (assoc-in db [:panels :all-users :users] users)
+      :fx [[:dispatch [::panel-loading :all-users false]]]})))
 
 (rf/reg-event-fx
- ::add-user-success
- (fn [{:keys [db]} [_ users]]
-   {:db (assoc-in db [:panels :all-users :users] users)
-    :fx [[:dispatch [::panel-loading :add-user false]]
-         [::effects/alert "Пользователь успешно добавлен."]]}))
+ ::load-users-error
+ (fn [_ [_ resp]]
+   {:fx [[:dispatch [::http-error resp]
+          :dispatch [::panel-loading :all-users false]]]}))
 
 (rf/reg-event-fx
  ::delete-user-request
