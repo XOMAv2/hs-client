@@ -60,7 +60,8 @@
   "Создаёт последовательность индексированную через метаданные."
   [coll & {:keys [index-name] :or {index-name :key}}]
   (seq (map-indexed (fn [i e]
-                      (with-meta e {index-name i})) coll)))
+                      (try (with-meta e {index-name i})
+                           (catch #?(:cljs js/Error :clj Exception) _ e))) coll)))
 
 (def kebabed-json-response-format
   "Значение ключа :response-format мапы запроса в библиотеке cljs-ajax.
