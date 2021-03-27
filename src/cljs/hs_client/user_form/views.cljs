@@ -157,21 +157,36 @@
      [:p.mb-1 [:span.fw-lighter "Адрес проживания: "] (:address user)]
      [:p.mb-1 [:span.fw-lighter "Номер полиса: "] (:policy-number user)]]))
 
-(defn empty-item [text]
-  [:li.list-group-item.list-group-item-action
-   [:p.my-2 text]])
-
-(defn user-list [users]
+(defn one-el-list [& el-body]
   [:ul.list-group
-   (if (empty? users)
-     [empty-item "Список пользователей пуст."]
-     (for [user users] ^{:key (gensym)} [user-item user]))])
+   [:li.list-group-item.list-group-item-action
+    [:p.my-2
+     [:<> el-body]]]])
+
+(defn user-list []
+  (let [users @(subscribe [::subs/users])]
+    (if (empty? users)
+      [one-el-list "Список пользователей пуст."]
+      [:ul.list-group
+       (for [user users] ^{:key (gensym)} [user-item user])])))
+
+(defn redirection-panel []
+  (dispatch [::events/change-route :all-route])
+  [:div.py-3 {:style {:width "36rem"}}
+   [one-el-list
+    ^{:key (gensym)} [:span.spinner-border.spinner-border-sm.me-2]
+    "Перенаправление на список всех пользователей..."]])
 
 (defn all-users-panel []
-  (let [users @(subscribe [::subs/users])]
+  (let [loading? @(subscribe [::subs/users-loading])]
     [:div.py-3.vh-100 {:style {:width "36rem"}}
-     [:div.h-100.overflow-auto
-      [user-list users]]]))
+     [:div.d-flex.flex-column.h-100
+      (when loading? [:div.mb-3
+                      [one-el-list
+                       ^{:key (gensym)} [:span.spinner-border.spinner-border-sm.me-2]
+                       "Обновление списка пользователей..."]])
+      [:div.flex-grow-1.overflow-auto
+       [user-list]]]]))
 
 (defn add-user-panel []
   (let [user @(subscribe [::subs/add-form])
@@ -192,14 +207,6 @@
                  :form-path [:panels :edit-user :user-form]
                  :err-path [:panels :edit-user :user-form-errors]}]]))
 
-(defn redirection-panel []
-  (dispatch [::events/change-route :all-route])
-  [:div.py-3 {:style {:width "36rem"}}
-   [:ul.list-group
-    [:li.list-group-item.list-group-item-action
-     [:p.my-2
-      [:span.spinner-border.spinner-border-sm.me-2]
-      "Перенаправление на список всех пользователей..."]]]])
 
 (defn navigation-panel []
   (let [match @(subscribe [::subs/route-match])
