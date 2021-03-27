@@ -4,7 +4,7 @@
             [hs-client.user-form.events :as events]
             [reitit.frontend.easy :refer [href]]
             [hs-common.helpers :as help]
-            [reagent.core :as r]))
+            [hs-client.config :refer [debug?]]))
 
 #_(defn with-err
   "Функция дополняет атрибуты элемента el ссылкой на div с ошибкой и добавляет этот div, если строка
@@ -52,8 +52,8 @@
                                              field (event-val event)]))]
     [:div.card
      [:div.card-body
-      [:form {:on-change #(.log js/console {:user user
-                                            :errors errors})
+      [:form {:on-change #(when debug? (.log js/console {:user user
+                                                         :errors errors}))
               :on-submit #(.preventDefault %)}
      ; ФИО
        [:div.mb-3
@@ -123,13 +123,13 @@
 
        (help/seq-indexed comps)]]]))
 
-(defn button-submit []
-  (let [loading @(subscribe [::subs/add-panel-loading])]
+(defn add-button []
+  (let [loading? @(subscribe [::subs/add-panel-loading])]
     [:div.d-flex.justify-content-end
      [:button.btn.btn-outline-primary {:type "submit"
-                                       :disabled loading
+                                       :disabled loading?
                                        :on-click #(dispatch [::events/add-form-submit])}
-      [:span.spinner-border.spinner-border-sm.me-2 {:style {:display (when (not loading)
+      [:span.spinner-border.spinner-border-sm.me-2 {:style {:display (when (not loading?)
                                                                        "none")}}]
       "Добавить"]]))
 
@@ -181,7 +181,7 @@
                  :errors errors
                  :form-path [:panels :add-user :user-form]
                  :err-path [:panels :add-user :user-form-errors]}
-      [button-submit]]]))
+      [add-button]]]))
 
 (defn edit-user-panel []
   (let [user @(subscribe [::subs/edit-form])
@@ -227,8 +227,8 @@
        "Редактирование" [:br] "пользователя"]]
      [:div.tab.content
       [:div.tab-pane {:role "tabpanel"}
-       (cond
-         (= curr-route-name :all-route) [all-users-panel]
-         (= curr-route-name :add-route) [add-user-panel]
-         (= curr-route-name :edit-route) [edit-user-panel]
-         :else [redirection-panel])]]]))
+       (case curr-route-name
+         :all-route [all-users-panel]
+         :add-route [add-user-panel]
+         :edit-route [edit-user-panel]
+         [redirection-panel])]]]))
