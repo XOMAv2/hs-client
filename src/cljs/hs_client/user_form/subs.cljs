@@ -34,6 +34,11 @@
    (-> db :panels :all-users :users)))
 
 (rf/reg-sub
+ ::users-loading
+ (fn [db _]
+   (-> db :panels :all-users :loading)))
+
+(rf/reg-sub
  ::route-match
  (fn [db _]
    (:route-match db)))
