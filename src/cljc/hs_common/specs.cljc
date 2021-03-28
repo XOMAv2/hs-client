@@ -58,5 +58,3 @@
 
 (s/def ::user (s/and ::user-form
                      (s/keys :req-un [::id])))
-
-(s/def ::users (s/coll-of ::user :into []))

@@ -7,11 +7,13 @@
             [day8.re-frame.http-fx]
             [ajax.core :as ajax]
             [reitit.frontend.controllers]
+            [hs-client.user-form.interceptors :as interceptors]
             [hs-client.user-form.effects :as effects]
             [cljs.spec.alpha :as s]))
 
 (rf/reg-event-db
  ::initialize-db
+ [interceptors/check-spec]
  (fn [_ _]
    db/default-db))
 
@@ -24,6 +26,7 @@
 ; Это событие не нужно вызывать напрямую из views. Оно вызываться при смене URI.
 (rf/reg-event-db
  ::on-navigate
+ [interceptors/check-spec]
  (fn [db [_ new-match]]
    (let [old-match (:route-match db)
          controllers (reitit.frontend.controllers/apply-controllers
@@ -33,6 +36,7 @@
 
 (rf/reg-event-db
  ::update-user-form
+ [interceptors/check-spec]
  (fn [db [_ form-path err-path key val]]
    (let [valid? (s/valid? (db/user-form-maps key) val)
          db (if valid?
@@ -43,12 +47,13 @@
 
 (rf/reg-event-db
  ::panel-loading
+ [interceptors/check-spec]
  (fn [db [_ panel loading?]]
    (assoc-in db [:panels panel :loading] loading?)))
 
 (rf/reg-event-fx
  ::add-form-submit
- [(rf/inject-cofx ::cofx/api-url)]
+ [(rf/inject-cofx ::cofx/api-url) interceptors/check-spec]
  (fn [{:keys [db api-url]} _]
    (let [user-form (-> db :panels :add-user :user-form)
          valid? (s/valid? ::ss/user-form user-form)
@@ -79,6 +84,7 @@
 
 (rf/reg-event-fx
  ::http-error
+ [interceptors/check-spec]
  (fn [{:keys [db]} [_ resp]]
    {:db (assoc db :server-error true)
     :fx [[::effects/console-log resp]
@@ -100,6 +106,7 @@
 
 (rf/reg-event-fx
  ::users-loading-success
+ [interceptors/check-spec]
  (fn [{:keys [db]} [_ users]]
    (let [users (map #(update % :birthday ->yyyy-mm-dd) users)]
      {:db (assoc-in db [:panels :all-users :users] users)
@@ -113,7 +120,7 @@
 
 (rf/reg-event-fx
  ::delete-user-request
- [(rf/inject-cofx ::cofx/api-url)]
+ [(rf/inject-cofx ::cofx/api-url) interceptors/check-spec]
  (fn [{:keys [db api-url]} [_ user-id]]
    {:db (update-in db [:panels :all-users :users] #(->> %
                                                         (map (fn [user]
@@ -130,6 +137,7 @@
 
 (rf/reg-event-fx
  ::delete-user-error
+ [interceptors/check-spec]
  (fn [{:keys [db]} [_ user-id resp]]
    {:db (update-in db [:panels :all-users :users] #(->> %
                                                         (map (fn [user] (if (= (:id user) user-id)
@@ -140,6 +148,7 @@
 
 (rf/reg-event-fx
  ::delete-user-success
+ [interceptors/check-spec]
  (fn [{:keys [db]} [_ {user-id :id}]]
    (let [edit-user-id (-> db :panels :edit-user :user-id)]
      {:db (update-in db [:panels :all-users :users]
@@ -151,7 +160,7 @@
 
 (rf/reg-event-fx
  ::load-edit-user
- [(rf/inject-cofx ::cofx/api-url)]
+ [(rf/inject-cofx ::cofx/api-url) interceptors/check-spec]
  (fn [{:keys [db api-url]} [_ user-id]]
    (let [curr-user-id (-> db :panels :edit-user :user-id)
          curr-user-form (-> db :panels :edit-user :user-form)]
@@ -171,6 +180,7 @@
 
 (rf/reg-event-fx
  ::load-edit-user-error
+ [interceptors/check-spec]
  (fn [{:keys [db]} [_ resp]]
    {:db (assoc-in db [:panels :edit-user :fetching] false)
     :fx [(if (= 404 (:status resp))
@@ -186,6 +196,7 @@
 
 (rf/reg-event-db
  ::reset-edit-panel
+ [interceptors/check-spec]
  (fn [db [_ user]]
    (let [user (update user :birthday ->yyyy-mm-dd)]
      (assoc-in db [:panels :edit-user] {:user-id (:id user)
@@ -197,7 +208,7 @@
 
 (rf/reg-event-fx
  ::edit-form-submit
- [(rf/inject-cofx ::cofx/api-url)]
+ [(rf/inject-cofx ::cofx/api-url) interceptors/check-spec]
  (fn [{:keys [db api-url]} _]
    (let [user-form (-> db :panels :edit-user :user-form)
          user-id (-> db :panels :edit-user :user-id)

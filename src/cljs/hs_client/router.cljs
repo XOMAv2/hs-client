@@ -3,22 +3,22 @@
             [reitit.coercion.spec]
             [reitit.coercion]
             [re-frame.core :as rf]
+            [hs-client.config :refer [debug?]]
             [hs-client.user-form.events :as events]))
 
 (def routes
   [["/users/" {:name :all-route
                :controllers [{:start (fn [& _]
-                                       (.log js/console "Entering all-route")
-                                       (.log js/console "Loading users...")
+                                       (when debug? (.log js/console "Entering all-route"))
                                        (rf/dispatch [::events/load-users]))}]}]
    ["/users/add" {:name :add-route
                   :controllers [{:start (fn [& _]
-                                          (.log js/console "Entering add-route"))}]}]
+                                          (when debug? (.log js/console "Entering add-route")))}]}]
    ["/users/:id/edit" {:name :edit-route
                        :parameters {:path {:id int?}}
                        :controllers [{:parameters {:path [:id]}
                                       :start (fn [identity]
-                                               (.log js/console "Entering edit-route")
+                                               (when debug? (.log js/console "Entering edit-route"))
                                                (rf/dispatch [::events/load-edit-user
                                                              (-> identity :path :id)]))}]}]])
 
