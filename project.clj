@@ -4,26 +4,27 @@
                   :exclusions [com.google.javascript/closure-compiler-unshaded
                                org.clojure/google-closure-library
                                org.clojure/google-closure-library-third-party]]
-                 [thheller/shadow-cljs "2.11.21"]
+                 [thheller/shadow-cljs "2.11.24"]
                  [reagent "1.0.0"]
                  [re-frame "1.2.0"]
                  [cljs-ajax "0.8.1"]
                  [metosin/reitit "0.5.12"]
                  [day8.re-frame/http-fx "0.2.3"]
-                 [camel-snake-kebab "0.4.2"]]
+                 [camel-snake-kebab "0.4.2"]
+                 [aero "1.1.6"] ; Либа для чтения edn-конфигов с тегами.
+                 [ring "1.9.2"]
+                 [compojure "1.6.2"]]
 
   :plugins [[lein-shadow "0.3.1"]
             [lein-shell "0.5.0"]]
 
   :min-lein-version "2.9.0"
 
-  :source-paths ["src/cljc" "src/cljs"]
+  :source-paths ["src/cljc" "src/cljs" "src/clj"]
 
   :test-paths   ["test/cljs"]
 
-  :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"
-                                    "test/js"]
-
+  :clean-targets ^{:protect false} ["resources/public/js/compiled" "target" "test/js"]
 
   :shadow-cljs {:nrepl {:port 8777}
 
@@ -35,19 +36,18 @@
 
                                :devtools {:http-root "resources/public"
                                           :http-port 8280
-                                          }}
-                         :browser-test
-                         {:target :browser-test
-                          :ns-regexp "-test$"
-                          :runner-ns shadow.test.browser
-                          :test-dir "target/browser-test"
-                          :devtools {:http-root "target/browser-test"
-                                     :http-port 8290}}
+                                          :http-handler hs-client.handler/dev-handler}}
 
-                         :karma-test
-                         {:target :karma
-                          :ns-regexp "-test$"
-                          :output-to "target/karma-test.js"}}}
+                         :browser-test {:target :browser-test
+                                        :ns-regexp "-test$"
+                                        :runner-ns shadow.test.browser
+                                        :test-dir "target/browser-test"
+                                        :devtools {:http-root "target/browser-test"
+                                                   :http-port 8290}}
+
+                         :karma-test {:target :karma
+                                      :ns-regexp "-test$"
+                                      :output-to "target/karma-test.js"}}}
 
   :shell {:commands {"karma" {:windows         ["cmd" "/c" "karma"]
                               :default-command "karma"}
@@ -55,15 +55,8 @@
                               :macosx          "open"
                               :linux           "xdg-open"}}}
 
-  :aliases {"dev"          ["do"
-                            ["shell" "echo" "\"DEPRECATED: Please use lein watch instead.\""]
-                            ["watch"]]
-            "watch"        ["with-profile" "dev" "do"
+  :aliases {"watch"        ["with-profile" "dev" "do"
                             ["shadow" "watch" "app" "browser-test" "karma-test"]]
-
-            "prod"         ["do"
-                            ["shell" "echo" "\"DEPRECATED: Please use lein release instead.\""]
-                            ["release"]]
 
             "release"      ["with-profile" "prod" "do"
                             ["shadow" "release" "app"]]
@@ -72,20 +65,20 @@
                             ["shadow" "run" "shadow.cljs.build-report" "app" "target/build-report.html"]
                             ["shell" "open" "target/build-report.html"]]
 
-            "karma"        ["do"
-                            ["shell" "echo" "\"DEPRECATED: Please use lein ci instead.\""]
-                            ["ci"]]
             "ci"           ["with-profile" "prod" "do"
                             ["shadow" "compile" "karma-test"]
                             ["shell" "karma" "start" "--single-run" "--reporters" "junit,dots"]]}
 
-  :profiles
-  {:dev
-   {:dependencies [[binaryage/devtools "1.0.2"]]
-    :source-paths ["dev"]}
+  :profiles {:dev {:dependencies [[binaryage/devtools "1.0.2"]]
+                   :source-paths ["dev"]}
 
-   :prod {}
+             :prod {}
 
-}
+             :uberjar {:source-paths ["env/prod/clj"]
+                       :omit-source  true
+                       :main         hs-client.server
+                       :aot          [hs-client.server]
+                       :uberjar-name "hs-client.jar"
+                       :prep-tasks   ["compile" ["release"]]}}
 
   :prep-tasks [])

@@ -37,5 +37,5 @@
                                          ; вызова функции coerce!
                                          match (assoc match :parameters parameters)]
                                      (rf/dispatch [::events/on-navigate match]))))
-                               {:use-fragment false})
+                               {:use-fragment true})
   (mount-root))
