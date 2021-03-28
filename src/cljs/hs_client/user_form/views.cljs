@@ -143,7 +143,7 @@
                                                                        "none")}}]
       "Изменить"]]))
 
-(defn user-item [user edit-disabled?]
+(defn user-item [{:keys [user edit-disabled?]}]
   (let [sex-map {\m "мужской"
                  \f "женский"
                  \x "другой"}]
@@ -180,7 +180,8 @@
     (if (empty? users)
       [one-el-list "Список пользователей пуст."]
       [:ul.list-group
-       (for [user users] ^{:key (gensym)} [user-item user edit-fetching?])])))
+       (for [user users] ^{:key (gensym)} [user-item {:user user
+                                                      :edit-disabled? edit-fetching?}])])))
 
 (defn redirection-panel []
   (dispatch [::events/change-route :all-route])
