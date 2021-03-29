@@ -9,7 +9,7 @@
 (def user-form-maps (help/spec->map ::ss/user-form))
 (s/def ::user-form-errors (s/nilable (s/map-of user-form-keys ::ss/non-empty-string)))
 
-(s/def ::deliting boolean?)
+(s/def ::deleting boolean?)
 (s/def ::user (s/and ::ss/user
                      (s/keys :opt-un [::deleting])))
 (s/def ::users (s/coll-of ::user :into []))
